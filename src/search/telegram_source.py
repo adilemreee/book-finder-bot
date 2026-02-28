@@ -57,9 +57,23 @@ class TelegramSource:
 
             mime = doc.mime_type or ""
             file_name = doc.file_name or ""
+            ext = file_name.lower().rsplit(".", 1)[-1] if "." in file_name else ""
 
-            is_pdf = mime == "application/pdf" or file_name.lower().endswith(".pdf")
-            if not is_pdf:
+            ALLOWED_MIMES = {
+                "application/pdf",
+                "application/epub+zip",
+                "application/x-mobipocket-ebook",
+                "image/vnd.djvu",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                "application/rtf",
+                "text/plain",
+                "application/octet-stream",
+            }
+            ALLOWED_EXTS = {"pdf", "epub", "djvu", "mobi", "doc", "docx", "fb2", "azw3", "rtf", "txt"}
+
+            is_doc = mime in ALLOWED_MIMES or ext in ALLOWED_EXTS
+            if not is_doc:
                 continue
 
             dedup_key = f"{file_name}_{doc.file_size}"

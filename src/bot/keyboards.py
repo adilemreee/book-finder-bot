@@ -18,9 +18,6 @@ def results_keyboard(
         name = r.get("file_name", "kitap.pdf")
         size_mb = r.get("file_size", 0) / (1024 * 1024)
 
-        if len(name) > 60:
-            name = name[:57] + "..."
-
         label = f"📄 {name} • {size_mb:.1f} MB"
         buttons.append([InlineKeyboardButton(text=label, callback_data=f"dl:{idx}")])
 
