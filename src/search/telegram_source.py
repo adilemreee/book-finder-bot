@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import os
-import tempfile
+import asyncio
 from dataclasses import dataclass
-from pathlib import Path
 
 from pyrogram import Client
 from pyrogram.enums import MessageMediaType
@@ -19,29 +17,60 @@ class SearchResult:
 
 
 class TelegramSource:
-    def __init__(self, client: Client, target_chats: list[str | int], dump_channel_id: str | int) -> None:
+    def __init__(
+        self,
+        client: Client,
+        target_chats: list[str | int],
+        dump_channel_id: str | int,
+        search_timeout: float = 15.0,
+    ) -> None:
         self._client = client
         self._target_chats = target_chats
         self._dump_channel_id = dump_channel_id
+        self._search_timeout = search_timeout
 
     async def search(self, query: str, max_results: int = 500) -> list[SearchResult]:
-        results: list[SearchResult] = []
         seen: set[str] = set()
 
-        for chat_id in self._target_chats:
+        # ⚡ Paralel Kanal Tarama — tüm kanallar aynı anda taranır
+        tasks = [
+            self._search_chat_safe(chat_id, query, max_results, seen)
+            for chat_id in self._target_chats
+        ]
+        all_results = await asyncio.gather(*tasks)
+
+        results: list[SearchResult] = []
+        for chat_results in all_results:
+            for r in chat_results:
+                if len(results) >= max_results:
+                    break
+                dedup_key = f"{r.file_name}_{r.file_size}"
+                if dedup_key not in seen:
+                    seen.add(dedup_key)
+                    results.append(r)
             if len(results) >= max_results:
                 break
-            try:
-                found = await self._search_chat(chat_id, query, max_results - len(results), seen)
-                results.extend(found)
-            except Exception as exc:
-                log.warning("chat_search_failed", chat=chat_id, error=str(exc))
-                continue
 
         return results
 
-    async def _search_chat(
+    async def _search_chat_safe(
         self, chat_id: str | int, query: str, limit: int, seen: set[str]
+    ) -> list[SearchResult]:
+        """Timeout korumalı kanal arama wrapper."""
+        try:
+            return await asyncio.wait_for(
+                self._search_chat(chat_id, query, limit),
+                timeout=self._search_timeout,
+            )
+        except asyncio.TimeoutError:
+            log.warning("chat_search_timeout", chat=chat_id, timeout=self._search_timeout)
+            return []
+        except Exception as exc:
+            log.warning("chat_search_failed", chat=chat_id, error=str(exc))
+            return []
+
+    async def _search_chat(
+        self, chat_id: str | int, query: str, limit: int
     ) -> list[SearchResult]:
         results: list[SearchResult] = []
 
@@ -76,11 +105,6 @@ class TelegramSource:
             is_doc = mime in ALLOWED_MIMES or ext in ALLOWED_EXTS
             if not is_doc:
                 continue
-
-            dedup_key = f"{file_name}_{doc.file_size}"
-            if dedup_key in seen:
-                continue
-            seen.add(dedup_key)
 
             results.append(
                 SearchResult(

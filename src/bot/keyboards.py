@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from src.utils.categorizer import get_all_categories, FORMAT_ICONS
 
 ITEMS_PER_PAGE = 5
 
@@ -18,7 +19,10 @@ def results_keyboard(
         name = r.get("file_name", "kitap.pdf")
         size_mb = r.get("file_size", 0) / (1024 * 1024)
 
-        label = f"📄 {name} • {size_mb:.1f} MB"
+        ext = name.lower().rsplit(".", 1)[-1] if "." in name else ""
+        icon = FORMAT_ICONS.get(ext, "📄")
+
+        label = f"{icon} {name} • {size_mb:.1f} MB"
         buttons.append([InlineKeyboardButton(text=label, callback_data=f"dl:{idx}")])
 
     nav_row: list[InlineKeyboardButton] = []
@@ -39,6 +43,26 @@ def results_keyboard(
 
     buttons.append([
         InlineKeyboardButton(text="🔍 Yeni Arama", callback_data="new_search"),
+    ])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def category_keyboard() -> InlineKeyboardMarkup:
+    categories = get_all_categories()
+    buttons: list[list[InlineKeyboardButton]] = []
+
+    row: list[InlineKeyboardButton] = []
+    for cat in categories:
+        row.append(InlineKeyboardButton(text=cat, callback_data=f"cat:{cat}"))
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+
+    buttons.append([
+        InlineKeyboardButton(text="🔍 Serbest Arama", callback_data="new_search")
     ])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

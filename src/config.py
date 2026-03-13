@@ -54,6 +54,15 @@ class Config:
     max_results: int = field(
         default_factory=lambda: int(os.getenv("MAX_RESULTS", "5"))
     )
+    cache_ttl_hours: float = field(
+        default_factory=lambda: float(os.getenv("CACHE_TTL_HOURS", "12"))
+    )
+    search_timeout: float = field(
+        default_factory=lambda: float(os.getenv("SEARCH_TIMEOUT_SECONDS", "15"))
+    )
+    session_ttl_minutes: int = field(
+        default_factory=lambda: int(os.getenv("SESSION_TTL_MINUTES", "30"))
+    )
 
 
 config = Config()
