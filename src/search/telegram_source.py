@@ -19,9 +19,10 @@ class SearchResult:
 
 
 class TelegramSource:
-    def __init__(self, client: Client, target_chats: list[str | int]) -> None:
+    def __init__(self, client: Client, target_chats: list[str | int], dump_channel_id: str | int) -> None:
         self._client = client
         self._target_chats = target_chats
+        self._dump_channel_id = dump_channel_id
 
     async def search(self, query: str, max_results: int = 500) -> list[SearchResult]:
         results: list[SearchResult] = []
@@ -93,18 +94,15 @@ class TelegramSource:
 
         return results
 
-    async def download_file(self, chat_id: str | int, message_id: int) -> str | None:
+    async def copy_to_dump(self, chat_id: str | int, message_id: int) -> int | None:
         try:
-            tmp_dir = tempfile.mkdtemp(prefix="bookbot_")
-            msg = await self._client.get_messages(chat_id, message_id)
-            if not msg or not msg.document:
-                return None
-
-            file_path = await self._client.download_media(
-                msg, file_name=os.path.join(tmp_dir, msg.document.file_name or "kitap.pdf")
+            msg = await self._client.copy_message(
+                chat_id=self._dump_channel_id,
+                from_chat_id=chat_id,
+                message_id=message_id
             )
-            log.info("file_downloaded", path=file_path)
-            return file_path
+            log.info("copied_to_dump", original_chat=chat_id, new_msg_id=msg.id)
+            return msg.id
         except Exception as exc:
-            log.error("download_error", chat=chat_id, msg_id=message_id, error=str(exc))
+            log.error("copy_to_dump_error", chat=chat_id, msg_id=message_id, error=str(exc))
             return None

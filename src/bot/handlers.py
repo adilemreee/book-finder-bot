@@ -5,6 +5,7 @@ from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import CommandStart, Command
 
+from src.config import config
 from src.search.engine import SearchEngine
 from src.search.telegram_source import TelegramSource
 from src.bot.keyboards import (
@@ -195,39 +196,29 @@ async def handle_download(
     )
 
     try:
-        file_path = await telegram_source.download_file(r.chat_id, r.message_id)
-        if not file_path:
+        dump_msg_id = await telegram_source.copy_to_dump(r.chat_id, r.message_id)
+        if not dump_msg_id:
             await progress_msg.edit_text("❌ Dosya indirilemedi. Kaynak silinmiş olabilir.")
             return
 
-        await progress_msg.edit_text(
-            f"📤 <b>Gönderiliyor:</b> {r.file_name}\n⏳ Lütfen bekle...",
-            parse_mode="HTML",
-        )
-
-        doc = FSInputFile(file_path, filename=r.file_name)
         size_mb = r.file_size / (1024 * 1024)
-
-        await bot.send_document(
+        caption = (
+            f"━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📄 <b>{r.file_name}</b>\n"
+            f"📊 {size_mb:.1f} MB\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━"
+        )
+        
+        await bot.copy_message(
             chat_id=uid,
-            document=doc,
-            caption=(
-                f"━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📄 <b>{r.file_name}</b>\n"
-                f"📊 {size_mb:.1f} MB\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━"
-            ),
+            from_chat_id=config.dump_channel_id,
+            message_id=dump_msg_id,
+            caption=caption,
             parse_mode="HTML",
             reply_markup=after_download_keyboard(r.file_name),
         )
 
         await progress_msg.delete()
-
-        try:
-            os.unlink(file_path)
-            os.rmdir(os.path.dirname(file_path))
-        except OSError:
-            pass
 
     except Exception as exc:
         log.error("send_failed", file=r.file_name, error=str(exc))

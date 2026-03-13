@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from src.cache.supabase_cache import SupabaseCache
+from src.cache.memory_cache import MemoryCache
 from src.search.telegram_source import TelegramSource, SearchResult
 from src.utils.normalizer import normalize_query
 from src.utils.logger import log
@@ -16,7 +16,7 @@ class EngineResult:
 
 
 class SearchEngine:
-    def __init__(self, cache: SupabaseCache, source: TelegramSource, max_results: int = 500) -> None:
+    def __init__(self, cache: MemoryCache, source: TelegramSource, max_results: int = 500) -> None:
         self._cache = cache
         self._source = source
         self._max_results = max_results
@@ -51,6 +51,7 @@ class SearchEngine:
                 file_name=r.file_name,
                 file_size=r.file_size,
                 source_chat=str(r.chat_id),
+                message_id=r.message_id,
             )
 
         return EngineResult(

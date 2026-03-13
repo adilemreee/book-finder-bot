@@ -27,6 +27,13 @@ def _parse_chats(raw: str) -> list[str | int]:
     return result
 
 
+def _parse_chat(raw: str) -> str | int:
+    try:
+        return int(raw)
+    except ValueError:
+        return raw
+
+
 @dataclass(frozen=True)
 class Config:
     bot_token: str = field(default_factory=lambda: _require("BOT_TOKEN"))
@@ -35,8 +42,9 @@ class Config:
     session_name: str = field(
         default_factory=lambda: os.getenv("PYROGRAM_SESSION_NAME", "book_finder_session")
     )
-    supabase_url: str = field(default_factory=lambda: _require("SUPABASE_URL"))
-    supabase_key: str = field(default_factory=lambda: _require("SUPABASE_KEY"))
+    dump_channel_id: int | str = field(
+        default_factory=lambda: _parse_chat(_require("DUMP_CHANNEL_ID"))
+    )
     target_chats: list[str | int] = field(
         default_factory=lambda: _parse_chats(os.getenv("TARGET_CHATS", ""))
     )

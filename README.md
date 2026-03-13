@@ -5,14 +5,14 @@ Türk Telegram kanallarından PDF kitap arayan ve kullanıcıya ileten asenkron 
 ## Mimari
 
 ```
-Kullanıcı → Aiogram Bot → Supabase Cache → Pyrogram (Grup Arama) → PDF Gönderim
+Kullanıcı → Aiogram Bot → Memory Cache → Pyrogram (Grup Arama) → PDF Gönderim (Zero-Download Copy)
 ```
 
 | Katman        | Teknoloji             |
 | ------------- | --------------------- |
 | Bot Framework | Aiogram 3.x           |
 | Grup Arama    | Pyrogram 2.x          |
-| Veritabanı    | Supabase (PostgreSQL) |
+| In-Memory Veri| Python dict           |
 | Deployment    | Docker                |
 
 ## Kurulum
@@ -22,11 +22,7 @@ Kullanıcı → Aiogram Bot → Supabase Cache → Pyrogram (Grup Arama) → PDF
 - Python 3.11+
 - Telegram Bot Token (`@BotFather`)
 - Telegram API ID & Hash (`my.telegram.org`)
-- Supabase projesi (ücretsiz plan yeterli)
-
-### 2. Supabase Şema
-
-Supabase SQL Editor'de `supabase_schema.sql` dosyasını çalıştır.
+- Gizli bir Telegram kanalı (Kasa/Depo olarak kullanılacak) ve kanalın ID'si. (Bot ve Pyrogram hesabı yönetici olmalı)
 
 ### 3. Ortam Değişkenleri
 
@@ -40,8 +36,7 @@ cp .env.example .env
 BOT_TOKEN=123456:ABC-DEF...
 PYROGRAM_API_ID=12345678
 PYROGRAM_API_HASH=abcdef1234567890
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_KEY=eyJ...
+DUMP_CHANNEL_ID=-1001234567890
 TARGET_CHATS=@kanal1,@kanal2,-1001234567890
 ```
 
@@ -88,7 +83,7 @@ src/
 │   ├── engine.py        # Arama orkestratörü
 │   └── telegram_source.py  # Pyrogram grup arama
 ├── cache/
-│   └── supabase_cache.py   # Supabase önbellek
+│   └── memory_cache.py     # In-Memory önbellek (Sıfır İndirme)
 └── utils/
     ├── logger.py        # Structured logging
     └── normalizer.py    # Türkçe sorgu normalizasyonu

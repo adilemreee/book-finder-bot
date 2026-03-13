@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher
 from pyrogram import Client as PyroClient
 
 from src.config import config
-from src.cache.supabase_cache import SupabaseCache
+from src.cache.memory_cache import MemoryCache
 from src.search.telegram_source import TelegramSource
 from src.search.engine import SearchEngine
 from src.bot.handlers import router
@@ -26,8 +26,8 @@ async def main() -> None:
         api_hash=config.api_hash,
     )
 
-    cache = SupabaseCache(config.supabase_url, config.supabase_key)
-    source = TelegramSource(pyro, config.target_chats)
+    cache = MemoryCache()
+    source = TelegramSource(pyro, config.target_chats, config.dump_channel_id)
     engine = SearchEngine(cache, source, max_results=config.max_results)
 
     dp = Dispatcher()
